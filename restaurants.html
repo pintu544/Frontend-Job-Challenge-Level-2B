@@ -1,0 +1,172 @@
+
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <title>Restaurant List</title>
+  <!-- Bootstrap CSS -->
+  <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.0/css/bootstrap.min.css">
+</head>
+
+<body class="container mt-5">
+
+  <nav class="navbar navbar-expand-lg navbar-light bg-light fixed-top">
+    <a class="navbar-brand" href="index.html">BistroPal</a>
+    <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNav"
+      aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+      <span class="navbar-toggler-icon"></span>
+    </button>
+    <div class="collapse navbar-collapse" id="navbarNav">
+      <ul class="navbar-nav ml-auto">
+        <li class="nav-item">
+          <a class="nav-link" href="#">Restaurant List</a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link" href="addrestaurant.html">Add Restaurant</a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link" href="about.html">About Us</a>
+        </li>
+      </ul>
+    </div>
+  </nav>
+
+  <h1 class="pt-4 mb-4">Restaurant List</h1>
+
+  <div id="loading" class="alert alert-info" role="alert" style="display: none;">
+    Loading...
+  </div>
+
+  <div id="error" class="alert alert-danger" role="alert" style="display: none;"></div>
+
+  <div class="mb-3">
+    <label for="cuisineFilter">Filter by Cuisine:</label>
+    <select id="cuisineFilter" class="form-control" onchange="applyFilter()">
+      <option value="">All</option>
+      <option value="Italian">Italian</option>
+      <option value="Mexican">Mexican</option>
+    </select>
+  </div>
+
+  <div class="mb-3">
+    <label for="sortOptions">Sort by:</label>
+    <select id="sortOptions" class="form-control" onchange="applySort()">
+      <option value="name">Name</option>
+      <option value="rating">Rating</option>
+    </select>
+  </div>
+
+  <ul id="restaurantList" class="list-group"></ul>
+
+
+  <footer class="text-center mt-5">
+    <p>&copy; 2023 BistroPal. All rights reserved.</p>
+  </footer>
+
+  <script>
+    const loadingContainer = document.getElementById('loading');
+    const errorContainer = document.getElementById('error');
+    const restaurantList = document.getElementById('restaurantList');
+    const cuisineFilter = document.getElementById('cuisineFilter');
+    const sortOptions = document.getElementById('sortOptions');
+    let data = [];
+
+    const apiUrl = 'https://zomato-express.prerananawar.repl.co/restaurants';
+
+    const displayLoading = () => {
+      loadingContainer.style.display = 'block';
+      errorContainer.style.display = 'none';
+      restaurantList.innerHTML = '';
+    };
+
+    const displayError = (error) => {
+      loadingContainer.style.display = 'none';
+      errorContainer.style.display = 'block';
+      errorContainer.textContent = `Error: ${error.message}`;
+    };
+
+    const displayRestaurants = (restaurants) => {
+      loadingContainer.style.display = 'none';
+      errorContainer.style.display = 'none';
+
+      restaurantList.innerHTML = '';
+
+      restaurants.forEach(restaurant => {
+        const listItem = document.createElement('li');
+        listItem.className = 'list-group-item';
+        listItem.innerHTML = `
+          <h4>${restaurant.name}</h4>
+          <p>Cuisine: ${restaurant.cuisine}</p>
+          <p>Address: ${restaurant.address}, ${restaurant.city}</p>
+          <p>Rating: ${restaurant.rating}</p>
+          <button class="btn btn-primary" onclick="viewDetails('${restaurant._id}')">View Details</button>
+          <button class="btn btn-danger ml-2" onclick="deleteRestaurant('${restaurant._id}')">Delete</button>
+          <button class="btn btn-warning ml-2" onclick="updateRestaurant('${restaurant._id}')">Update</button>
+        `;
+        restaurantList.appendChild(listItem);
+      });
+    };
+
+    const fetchData = async () => {
+      try {
+        displayLoading();
+        const response = await fetch(apiUrl);
+        if (!response.ok) {
+          throw new Error(`Failed to fetch data: ${response.status}`);
+        }
+        data = await response.json();
+        displayRestaurants(data);
+      } catch (error) {
+        displayError(error);
+      }
+    };
+
+    const applyFilter = () => {
+      const selectedCuisine = cuisineFilter.value;
+      const filteredRestaurants = data.filter(restaurant => selectedCuisine === '' || restaurant.cuisine === selectedCuisine);
+      displayRestaurants(filteredRestaurants);
+    };
+
+    const applySort = () => {
+      const sortBy = sortOptions.value;
+      const sortedRestaurants = [...data].sort((a, b) => {
+        if (sortBy === 'name') {
+          return a.name.localeCompare(b.name);
+        } else {
+          return b[sortBy] - a[sortBy];
+        }
+      });
+      displayRestaurants(sortedRestaurants);
+    };
+
+    const viewDetails = (restaurantId) => {
+      window.location.href = `restaurant-details.html?id=${restaurantId}`;
+    };
+
+    const deleteRestaurant = async (restaurantId) => {
+      try {
+        const deleteUrl = `${apiUrl}/${restaurantId}`;
+        const response = await fetch(deleteUrl, {
+          method: 'DELETE',
+        });
+
+        if (!response.ok) {
+          throw new Error(`Failed to delete restaurant: ${response.status}`);
+        }
+
+        fetchData();
+      } catch (error) {
+        displayError(error);
+      }
+    };
+
+    const updateRestaurant = (restaurantId) => {
+      window.location.href = `addrestaurant.html?updateId=${restaurantId}`;
+    };
+
+    fetchData();
+  </script>
+
+</body>
+
+</html>
